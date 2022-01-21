@@ -11,9 +11,9 @@ import {
   IconButton,
   Box,
   Divider,
-  Button,
-  Link,
   Typography,
+  Collapse,
+  Fade,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -21,6 +21,7 @@ import {
 } from "@mui/icons-material";
 import { SlideProps } from "@mui/material/Slide";
 import { KeyboardDoubleArrowDownSharp as DownSharpIcon } from "@mui/icons-material";
+import { TransitionGroup } from "react-transition-group";
 
 type TransitionProps = Omit<SlideProps, "direction">;
 
@@ -40,11 +41,7 @@ function readSubtitle(file: any) {
 export default function MergeSubtitle() {
   const dropAreaRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
-  const downloadRef = React.useRef(null);
-  const [downloadNode, setDownloadNode] = React.useState({
-    show: false,
-    name: "",
-  });
+
   const [dropEnter, setDropEnter] = React.useState(false);
   const [fileList, setFileList] = React.useState<File[]>([]);
   const [openSnackbar, setOpenSnackbar] = React.useState({
@@ -169,19 +166,19 @@ export default function MergeSubtitle() {
       firstSubs.map(i => i + "\n\n"),
       { type: "text/plain" }
     );
-    const link = downloadRef.current as unknown as HTMLLinkElement & {
-      download: string;
-    };
-    console.log(link);
-    link.href = URL.createObjectURL(downloadFile);
-    link.download = fileName + ".srt";
-    setDownloadNode({ show: true, name: fileName + ".srt" });
-    console.log(firstSubs.join("\n\n"));
+
+    const downloadHandle = document.createElement("a");
+    downloadHandle.href = URL.createObjectURL(downloadFile);
+    downloadHandle.download = fileName + ".srt";
+    downloadHandle.click();
   };
   return (
-    <>
+    <Fade in timeout={1000}>
       <Container>
-        <Typography sx={{ textAlign: "center", fontWeight: 500 }} variant="h3">
+        <Typography
+          sx={{ textAlign: "center", fontWeight: 500, my: 3 }}
+          variant="h3"
+        >
           Merge Subtitle
         </Typography>
         <Grid container justifyContent="center">
@@ -192,6 +189,7 @@ export default function MergeSubtitle() {
                 type="file"
                 id="subtitle"
                 onChange={inputFile}
+                accept=".srt"
                 multiple
               />
             </Box>
@@ -233,80 +231,65 @@ export default function MergeSubtitle() {
               </Alert>
             </Snackbar>
             <List>
-              {fileList.map(f => (
-                <React.Fragment key={f.name}>
-                  <ListItem
-                    sx={{
-                      borderRadius: 1,
-                      my: 1,
-                      bgcolor: "background.paper",
-                    }}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        title="delete"
-                        onClick={() => handleRemoveFile(f.name)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText primary={f.name} />
-                  </ListItem>
-                  <Divider />
-                </React.Fragment>
-              ))}
+              <TransitionGroup>
+                {fileList.map(f => (
+                  <Collapse key={f.name}>
+                    <ListItem
+                      sx={{
+                        borderRadius: 1,
+                        my: 1,
+                        bgcolor: "background.paper",
+                      }}
+                      secondaryAction={
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          title="delete"
+                          onClick={() => handleRemoveFile(f.name)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText primary={f.name} />
+                    </ListItem>
+                    <Divider />
+                  </Collapse>
+                ))}
+              </TransitionGroup>
             </List>
-            <Box sx={{ display: "flex", justifyContent: "end" }}>
-              {fileList.length >= 2 && (
-                <Button
-                  onClick={mergeSubtitle}
-                  color="primary"
-                  variant="contained"
-                  disabled={downloadNode.show}
-                >
-                  Merge Subtitles
-                </Button>
-              )}
-            </Box>
-            {downloadNode.show && (
+
+            <Collapse in={fileList.length >= 2} timeout={1000}>
               <Box sx={{ display: "flex", justifyContent: "center" }}>
                 <DownSharpIcon sx={{ fontSize: "h4.fontSize" }} />
               </Box>
-            )}
-            <Box>
-              <Link
-                sx={[!downloadNode.show && { display: "none" }]}
-                underline="none"
-                ref={downloadRef}
-                href="#"
-              >
-                <List>
-                  <ListItem
-                    sx={{
-                      borderRadius: 1,
-                      my: 1,
-                      bgcolor: "background.paper",
-                    }}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        aria-label="download"
-                        title="download"
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText primary={downloadNode.name} />
-                  </ListItem>
-                </List>
-              </Link>
-            </Box>
+              <List>
+                <ListItem
+                  sx={{
+                    borderRadius: 1,
+                    my: 1,
+                    bgcolor: "background.paper",
+                  }}
+                  secondaryAction={
+                    <IconButton
+                      edge="end"
+                      aria-label="download"
+                      title="download"
+                      onClick={mergeSubtitle}
+                    >
+                      <DownloadIcon />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText
+                    primary={fileList.map(i => i.name).join(" + ")}
+                  />
+                </ListItem>
+              </List>
+            </Collapse>
           </Grid>
         </Grid>
       </Container>
-    </>
+    </Fade>
   );
 }
